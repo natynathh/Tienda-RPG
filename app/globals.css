@@ -123,7 +123,6 @@ button:disabled{opacity:.56;cursor:wait}
 .npc-callout:after{content:"";position:absolute;bottom:-10px;right:20px;border-style:solid;border-width:10px 0 0 12px;border-color:transparent transparent transparent #e5c58c}
 .scene-busy.action-pick .npc-wrap{animation:lira-present 1.03s cubic-bezier(.35,.1,.3,1) both}
 .scene-busy.action-swap .npc-wrap{animation:lira-sweep .86s cubic-bezier(.3,.12,.5,1) both}
-.npc-speaking:not(.scene-busy) .npc-image{animation:lira-talking 1.1s ease-in-out infinite;transform-origin:50% 83%}
 .portrait-talking{animation:lira-portrait .8s ease-in-out infinite;box-shadow:0 0 20px #e5b9776b}
 .scene-busy.action-pick .relic-slot.relic-featured{animation:relic-present .99s cubic-bezier(.18,.78,.28,1) forwards!important;animation-delay:0s!important;z-index:9}
 .scene-busy.action-pick .relic-slot.relic-eject-left{animation:relic-eject-left .85s cubic-bezier(.52,.08,.8,.48) forwards!important;animation-delay:.04s!important;z-index:5}
@@ -148,11 +147,6 @@ button:disabled{opacity:.56;cursor:wait}
 .music-controls small{flex:1;color:#bda9c5;font-size:11px;line-height:1.5}
 .music-warning{max-width:360px}
 .voice-file-hint{display:block;padding-top:6px;color:#ddbd8f;font-size:11px}
-.npc-speaking-mouth{position:absolute;z-index:2;left:48%;top:28.4%;width:6.15%;height:2.7%;transform:rotate(-12deg);pointer-events:none;opacity:0;display:grid;place-items:center}
-.npc-speaking-mouth i{display:block;background:radial-gradient(ellipse at 52% 72%,#cb686b 0 12%,#581c29 28%,#381622 66%,#2e1520 100%);width:86%;height:100%;border:1px solid #8d404a;border-bottom:2px solid #db8c7b;border-radius:44% 45% 56% 60%;box-shadow:0 0 2px #341322aa;transform:scaleY(.2);transform-origin:50% 18%}
-.npc-speaking .npc-speaking-mouth{opacity:1}
-.npc-speaking .npc-speaking-mouth i{animation:lira-lipflap .27s cubic-bezier(.35,.05,.55,.95) infinite alternate}
-@keyframes lira-lipflap{0%{transform:scaleY(.2) scaleX(.96)}42%{transform:scaleY(.78) scaleX(1)}100%{transform:scaleY(1.05) scaleX(.92)}}
 .scene-busy.action-pick .relic-slot.relic-featured{animation:relic-present-smooth 1.09s cubic-bezier(.23,.72,.3,1) forwards!important}
 .scene-busy.action-pick .relic-slot.relic-eject-left{animation:relic-eject-left-smooth .92s cubic-bezier(.34,.1,.7,.7) forwards!important}
 .scene-busy.action-pick .relic-slot.relic-eject-right{animation:relic-eject-right-smooth .92s cubic-bezier(.34,.1,.7,.7) forwards!important}
