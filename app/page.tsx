@@ -72,6 +72,7 @@ export default function Home(){
   const [typed,setTyped]=useState("");
   const audioRef=useRef<HTMLAudioElement|null>(null);
   const musicRef=useRef<HTMLAudioElement|null>(null);
+  const whooshRef=useRef<HTMLAudioElement|null>(null);
   const videoRef=useRef<HTMLVideoElement|null>(null);
   const streamRef=useRef<MediaStream|null>(null);
   const animationRef=useRef(0);
@@ -206,13 +207,18 @@ export default function Home(){
     track.volume=(musicVolume/100)*(voiceSpeaking||micOn?0.35:1);
   },[musicVolume,voiceSpeaking,micOn]);
   const toggleMusic=()=>{if(musicOn){setMusicOn(false);return;}setMusicError(false);setMusicOn(true);};
+  const playWoosh=useCallback(()=>{
+    const audio=whooshRef.current;
+    if(!audio)return;
+    try{audio.pause();audio.currentTime=0;audio.volume=0.38;void audio.play().catch(()=>{});}catch{/* La interacción continúa incluso sin audio. */}
+  },[]);
   const goShop=useCallback(()=>{
     if(pendingRef.current)return;
     setScreen("shop");setSelected(null);setFeedback("");setBusy(false);setActionKind("none");setChoiceId(null);setHoveredGame(null);setLiraReaction("");
   },[]);
   const nextWorlds=useCallback(async()=>{
     if(pendingRef.current)return;
-    pendingRef.current=true;setActionKind("swap");setChoiceId(null);setHoveredGame(null);
+    playWoosh();pendingRef.current=true;setActionKind("swap");setChoiceId(null);setHoveredGame(null);
     setBusy(true);setLiraReaction("¡Un momento! Tengo más tesoros...");
     setFeedback("¡Apartemos estas reliquias! Tengo más mundos que mostrarte...");
     // Esperar a que termine la salida de los tres objetos, sin intercambiarlos a mitad.
@@ -222,16 +228,16 @@ export default function Home(){
     setLiraReaction("¡Mira estas nuevas reliquias!");
     await pause(900);
     setFeedback("");setLiraReaction("");pendingRef.current=false;
-  },[games.length]);
+  },[games.length,playWoosh]);
   const selectGame=useCallback(async(game:RankedGame)=>{
     if(pendingRef.current)return;
-    pendingRef.current=true;setSelected(game);setChoiceId(game.id);setActionKind("pick");
+    playWoosh();pendingRef.current=true;setSelected(game);setChoiceId(game.id);setActionKind("pick");
     setHoveredGame(null);setBusy(true);setLiraReaction("¡Gran elección! Mira de cerca...");
     setFeedback("¡Ah, esa! Dame un segundo, voy a despejar el mostrador...");
     await pause(1140);
     setScreen("detail");setBusy(false);setActionKind("none");setFeedback("");setLiraReaction("");
     pendingRef.current=false;
-  },[]);
+  },[playWoosh]);
   const beginConcept=()=>{setConceptStep(0);setFeedback("");setScreen("concept");};
   const beginStory=()=>{setStoryStep(0);setFeedback("");setScreen("story");};
   const advance=()=>{
@@ -332,6 +338,7 @@ export default function Home(){
   return <main className="app-shell">
     <div className="ambient-stars" aria-hidden="true"/>
     <audio ref={musicRef} src="/audio/blue-harbor-ambient.mp3" loop preload="none" onError={()=>{setMusicOn(false);setMusicError(true);}} aria-label="Música instrumental de fondo"/>
+    <audio ref={whooshRef} src="/audio/woosh-world.mp3" preload="auto" aria-label="Efecto de transición de reliquias"/>
     <header className="top-bar">
       <button className="brand" onClick={goShop}><span className="brand-icon"><Sparkles size={22}/></span><span><small>EL MUNDO JUGANDO AL MISMO TIEMPO</small><strong>La tienda de los mundos</strong></span></button>
       <div className="top-center"><span className="live-dot"/>{mode==="live"?"CIFRAS DE STEAM":"MODO DEMOSTRACIÓN"}<span className="center-separator">·</span>Actualizado {updateTime}</div>
@@ -346,12 +353,12 @@ export default function Home(){
     </header>
 
     <section className="experience" aria-label="Tienda RPG interactiva">
-      <div className={`game-stage scene-${screen} ${busy?"scene-busy":""} action-${actionKind} ${voiceSpeaking?"npc-speaking":""}`}>
+      <div className={`game-stage scene-${screen} ${busy?"scene-busy":""} action-${actionKind}`}>
         <div className="scene-overlay" aria-hidden="true"/>
         <div className="top-stage-label">✧ &nbsp; LA TIENDA ENTRE MUNDOS &nbsp; ✧</div>
         {screen==="shop"&&<div className="shelf-indicator">COLECCIÓN {page+1} / {pages}<div>{Array.from({length:pages},(_,i)=><i key={i} className={i===page?"selected":""}/>)}</div></div>}
         <div className={`npc-wrap ${busy?"npc-action":""} ${screen==="detail"?"npc-inspect":""} ${screen==="story"?"npc-story":""}`}>
-          <img className="npc-image" src="/assets/merchant.png" alt="Lira, la mercadera, sonríe detrás del mostrador" draggable={false}/><span className="npc-speaking-mouth" aria-hidden="true"><i/></span><span className="npc-sparkle a">✦</span><span className="npc-sparkle b">✧</span>
+          <img className="npc-image" src="/assets/merchant.png" alt="Lira, la mercadera, sonríe detrás del mostrador" draggable={false}/><span className="npc-sparkle a">✦</span><span className="npc-sparkle b">✧</span>
         </div>
         {(liraReaction||(screen==="shop"&&hoveredGame))&&<div className="npc-callout" role="status"><span>✦</span>{liraReaction||("¿Quieres explorar "+hoveredGame+"?")}</div>}
         <div className="counter-lip" aria-hidden="true"/>
