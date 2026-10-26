@@ -8,9 +8,7 @@ import { RelicArt } from "./relic";
 type Screen="intro"|"shop"|"detail"|"concept"|"story";
 type ApiResponse={mode:"live"|"demo";games:RankedGame[];fetchedAt:string;coverage:string;note:string};
 const intro=[
-  "¡Oh! Una visitante. ¡Pasa, pasa! Soy Lira, guardiana de esta pequeña tienda entre mundos.",
-  "Aquí no vendo armas ni pociones corrientes. Cada reliquia abre una ventana a un videojuego donde miles de personas están compartiendo una aventura ahora mismo.",
-  "Puedes elegir un objeto, pedirme otros mundos o escuchar una historia. ¿Lista para descubrir quiénes habitan detrás de los números?"
+  "¡Oh! ¡Una visitante! ¡Pasa, pasa! Soy Lira, guardiana de esta pequeña tienda entre mundos. Aquí no vendo armas ni pociones corrientes... Cada reliquia es una puerta hacia un mundo donde miles de personas están viviendo una aventura justo ahora. ¿Te gustaría descubrirlos conmigo?"
 ];
 const concept=[
   "Todo comenzó con una pregunta: ¿qué pasaría si pudiéramos ver a todas esas personas jugando al mismo tiempo?",
@@ -52,6 +50,8 @@ export default function Home(){
   const [hoveredGame,setHoveredGame]=useState<string|null>(null);
   const [liraReaction,setLiraReaction]=useState("");
   const [voiceOn,setVoiceOn]=useState(false);
+  const [voiceMode,setVoiceMode]=useState<"recorded"|"system">("recorded");
+  const [recordedVoiceError,setRecordedVoiceError]=useState(false);
   const [showVoiceSettings,setShowVoiceSettings]=useState(false);
   const [availableVoices,setAvailableVoices]=useState<SpeechSynthesisVoice[]>([]);
   const [voiceChoice,setVoiceChoice]=useState("auto");
@@ -64,6 +64,7 @@ export default function Home(){
   const [showGuide,setShowGuide]=useState(false);
   const [showSources,setShowSources]=useState(false);
   const [typed,setTyped]=useState("");
+  const audioRef=useRef<HTMLAudioElement|null>(null);
   const videoRef=useRef<HTMLVideoElement|null>(null);
   const streamRef=useRef<MediaStream|null>(null);
   const animationRef=useRef(0);
@@ -123,7 +124,7 @@ export default function Home(){
     })[0]||null;
   },[availableVoices,voiceChoice]);
   useEffect(()=>{
-    if(!voiceOn||typeof window==="undefined"||!window.speechSynthesis){setVoiceSpeaking(false);return;}
+    if(!voiceOn||voiceMode!=="system"||typeof window==="undefined"||!window.speechSynthesis){return;}
     window.speechSynthesis.cancel();
     const utterance=new SpeechSynthesisUtterance(dialogue);
     if(preferredVoice)utterance.voice=preferredVoice;
@@ -137,8 +138,38 @@ export default function Home(){
       utterance.onstart=null;utterance.onend=null;utterance.onerror=null;
       window.speechSynthesis.cancel();
     };
-  },[dialogue,voiceOn,preferredVoice]);
+  },[dialogue,voiceOn,preferredVoice,voiceMode]);
+  useEffect(()=>{
+    if(screen!=="intro"&&audioRef.current){
+      audioRef.current.pause();audioRef.current=null;
+      setVoiceSpeaking(false);setVoiceOn(false);
+    }
+  },[screen]);
+  useEffect(()=>()=>{audioRef.current?.pause();window.speechSynthesis?.cancel();},[]);
+  const playRecordedIntro=()=>{
+    if(typeof window==="undefined")return;
+    audioRef.current?.pause();
+    window.speechSynthesis?.cancel();
+    setRecordedVoiceError(false);
+    const clip=new Audio("/audio/lira-intro-01.mp3");
+    audioRef.current=clip;
+    clip.onplay=()=>{setVoiceOn(true);setVoiceSpeaking(true);};
+    clip.onended=()=>{setVoiceOn(false);setVoiceSpeaking(false);};
+    clip.onerror=()=>{setVoiceOn(false);setVoiceSpeaking(false);setRecordedVoiceError(true);};
+    void clip.play().catch(()=>{setVoiceOn(false);setVoiceSpeaking(false);setRecordedVoiceError(true);});
+  };
+  const toggleVoice=()=>{
+    if(voiceOn){
+      audioRef.current?.pause();window.speechSynthesis?.cancel();
+      setVoiceOn(false);setVoiceSpeaking(false);return;
+    }
+    if(voiceMode==="recorded"){
+      if(screen==="intro")playRecordedIntro();
+      else setFeedback("Esta escena todavía no tiene audio grabado. Los diálogos siguen disponibles en texto.");
+    }else setVoiceOn(true);
+  };
   const previewVoice=()=>{
+    if(voiceMode==="recorded"){playRecordedIntro();return;}
     if(typeof window==="undefined"||!window.speechSynthesis)return;
     window.speechSynthesis.cancel();
     const sample=new SpeechSynthesisUtterance("¡Hola! Soy Lira, tu mercadera de mundos. ¿Qué aventura te gustaría descubrir hoy?");
@@ -273,7 +304,7 @@ export default function Home(){
       <button className="brand" onClick={goShop}><span className="brand-icon"><Sparkles size={22}/></span><span><small>EL MUNDO JUGANDO AL MISMO TIEMPO</small><strong>La tienda de los mundos</strong></span></button>
       <div className="top-center"><span className="live-dot"/>{mode==="live"?"CIFRAS DE STEAM":"MODO DEMOSTRACIÓN"}<span className="center-separator">·</span>Actualizado {updateTime}</div>
       <nav className="top-actions" aria-label="Controles">
-        <button className={voiceOn?"icon-button active":"icon-button"} title={voiceOn?"Silenciar a Lira":"Activar voz de Lira"} aria-label={voiceOn?"Silenciar a Lira":"Activar voz de Lira"} onClick={()=>{setVoiceOn(v=>!v);window.speechSynthesis?.cancel();}}>{voiceOn?<Volume2 size={19}/>:<VolumeX size={19}/>}</button>
+        <button className={voiceOn?"icon-button active":"icon-button"} title={voiceOn?"Silenciar a Lira":"Activar voz de Lira"} aria-label={voiceOn?"Silenciar a Lira":"Activar voz de Lira"} onClick={toggleVoice}>{voiceOn?<Volume2 size={19}/>:<VolumeX size={19}/>}</button>
         <button className="icon-button" title="Elegir voz de Lira" aria-label="Elegir voz de Lira" onClick={()=>setShowVoiceSettings(true)}><Settings2 size={19}/></button>
         <button className={micOn?"icon-button active":"icon-button"} title="Hablarle a Lira" aria-label="Hablarle a Lira" onClick={toggleMic}>{micOn?<Mic size={19}/>:<MicOff size={19}/>}</button>
         <button className={camOn?"icon-button active":"icon-button"} title="Gestos con cámara" aria-label="Gestos con cámara" onClick={toggleCamera}>{camOn?<Camera size={19}/>:<CameraOff size={19}/>}</button>
@@ -320,9 +351,9 @@ export default function Home(){
       </div>
 
       <div className="dialog-panel"><div className={voiceSpeaking?"portrait portrait-talking":"portrait"}><img src="/assets/merchant.png" alt="Retrato de Lira"/></div>
-        <div className="dialog-copy"><div className="speaker-line"><strong>LIRA</strong><span>· MERCADERA DE MUNDOS</span></div><p aria-live="polite">{typed}<span className="cursor-blink">▌</span></p></div>
+        <div className="dialog-copy"><div className="speaker-line"><strong>LIRA</strong><span>· MERCADERA DE MUNDOS</span></div><p aria-live="polite">{typed}<span className="cursor-blink">▌</span></p>{screen==="intro"&&recordedVoiceError&&<small className="voice-file-hint">Falta añadir el archivo de Firefly en GitHub. Puedes continuar en texto mientras tanto.</small>}</div>
         <div className="dialog-actions">
-          {screen==="intro"&&<><button className="action-primary" onClick={advance}>{introStep===intro.length-1?"Entrar a la tienda":"Continuar"} <ChevronRight size={17}/></button><button className="action-secondary" onClick={goShop}>Saltar introducción</button></>}
+          {screen==="intro"&&<><button className="action-primary" onClick={advance}>{introStep===intro.length-1?"Entrar a la tienda":"Continuar"} <ChevronRight size={17}/></button><button className="action-secondary" onClick={toggleVoice}>{voiceSpeaking?"Pausar voz":"Escuchar a Lira"} <Volume2 size={16}/></button><button className="action-secondary" onClick={goShop}>Saltar introducción</button></>}
           {screen==="shop"&&<><button className="action-primary" onClick={()=>void nextWorlds()} disabled={busy}><RotateCcw size={15}/> Otros mundos</button><button className="action-secondary" onClick={beginConcept}><ScrollText size={15}/> El proyecto</button><button className="action-secondary" onClick={beginStory}><BookOpen size={15}/> Una historia</button></>}
           {screen==="detail"&&<><button className="action-primary" onClick={goShop}><ArrowLeft size={15}/> Volver a la tienda</button><button className="action-secondary" onClick={()=>void nextWorlds()}><RotateCcw size={15}/> Más mundos</button><button className="action-secondary" onClick={beginStory}><BookOpen size={15}/> La historia</button></>}
           {(screen==="concept"||screen==="story")&&<><button className="action-primary" onClick={advance}>{(screen==="concept"?conceptStep===concept.length-1:storyStep===story.length-1)?"Volver a la tienda":"Siguiente página"} <ArrowRight size={16}/></button><button className="action-secondary" onClick={goShop}>Cerrar libro</button></>}
@@ -339,16 +370,20 @@ export default function Home(){
     {showVoiceSettings&&<div className="overlay-backdrop" onClick={()=>setShowVoiceSettings(false)}><div className="overlay-card voice-card" onClick={e=>e.stopPropagation()}>
       <button className="close-modal" onClick={()=>setShowVoiceSettings(false)} aria-label="Cerrar"><X size={20}/></button>
       <div className="modal-badge"><Volume2 size={20}/></div><h2>La voz de Lira</h2>
-      <p>Buscamos una voz femenina, cálida y cercana en español. La selección depende de las voces instaladas en tu computadora.</p>
-      <label className="voice-label" htmlFor="lira-voice">Elige su voz</label>
-      <select id="lira-voice" className="voice-select" value={voiceChoice} onChange={e=>setVoiceChoice(e.target.value)}>
-        <option value="auto">Automática · priorizar voz femenina en español</option>
-        {availableVoices.map(v=><option key={v.voiceURI} value={v.voiceURI}>{v.name} · {v.lang}</option>)}
+      <p>Queremos que Lira se sienta cercana: la opción recomendada es una voz realista, pregrabada con Adobe Firefly.</p>
+      <label className="voice-label" htmlFor="lira-mode">Tipo de voz</label>
+      <select id="lira-mode" className="voice-select" value={voiceMode} onChange={e=>{audioRef.current?.pause();window.speechSynthesis?.cancel();setVoiceSpeaking(false);setVoiceOn(false);setVoiceMode(e.target.value as "recorded"|"system");}}>
+        <option value="recorded">Grabación natural con Firefly (recomendada)</option>
+        <option value="system">Síntesis de voz del navegador (opcional)</option>
       </select>
-      <p className="voice-hint">{availableVoices.length?("Voz elegida: "+(preferredVoice?.name||"predeterminada")+". Ritmo suave y tono amable."):"Tu navegador todavía no ha mostrado voces en español. Prueba abrir la página en Safari o instalar una voz en macOS."}</p>
+      {voiceMode==="system"?<><label className="voice-label" htmlFor="lira-voice">Elige una voz en español</label><select id="lira-voice" className="voice-select" value={voiceChoice} onChange={e=>setVoiceChoice(e.target.value)}>
+        <option value="auto">Automática · priorizar voz femenina</option>
+        {availableVoices.map(v=><option key={v.voiceURI} value={v.voiceURI}>{v.name} · {v.lang}</option>)}
+      </select></>:<p className="voice-hint">Tenemos una bienvenida grabada. Los demás diálogos todavía se mostrarán por escrito hasta grabarlos. Si el archivo de audio aún no está disponible, súbelo a <code>public/audio/lira-intro-01.mp3</code> en GitHub.</p>}
+      {recordedVoiceError&&voiceMode==="recorded"&&<p className="voice-hint" role="status">Aún no está el audio en el sitio. Puedes subir el MP3 al repositorio, sin cambiar el código.</p>}
       <div className="voice-actions">
         <button className="action-secondary" onClick={previewVoice}><Volume2 size={16}/> Escuchar ejemplo</button>
-        <button className="action-primary" onClick={()=>{setShowVoiceSettings(false);setVoiceOn(true);}}><Check size={16}/> Usar esta voz</button>
+        <button className="action-primary" onClick={()=>{setShowVoiceSettings(false);if(voiceMode==="system")setVoiceOn(true);}}><Check size={16}/> Guardar selección</button>
       </div>
     </div></div>}
     {showGuide&&<div className="overlay-backdrop" onClick={()=>setShowGuide(false)}><div className="overlay-card" onClick={e=>e.stopPropagation()}>
