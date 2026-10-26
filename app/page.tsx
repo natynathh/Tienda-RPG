@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, BookOpen, Camera, CameraOff, Check, ChevronRight, Compass, ExternalLink, Hand, HelpCircle, Info, Mic, MicOff, RotateCcw, ScrollText, Sparkles, Volume2, VolumeX, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, Camera, CameraOff, Check, ChevronRight, Compass, ExternalLink, Hand, HelpCircle, Info, Mic, MicOff, RotateCcw, ScrollText, Sparkles, Settings2, Volume2, VolumeX, X } from "lucide-react";
 import { demoRanking, formatPlayers, type RankedGame } from "./game-data";
 import { RelicArt } from "./relic";
 
@@ -47,7 +47,15 @@ export default function Home(){
   const [coverage,setCoverage]=useState("Cifras de ejemplo");
   const [selected,setSelected]=useState<RankedGame|null>(null);
   const [busy,setBusy]=useState(false);
+  const [actionKind,setActionKind]=useState<"none"|"pick"|"swap">("none");
+  const [choiceId,setChoiceId]=useState<string|null>(null);
+  const [hoveredGame,setHoveredGame]=useState<string|null>(null);
+  const [liraReaction,setLiraReaction]=useState("");
   const [voiceOn,setVoiceOn]=useState(false);
+  const [showVoiceSettings,setShowVoiceSettings]=useState(false);
+  const [availableVoices,setAvailableVoices]=useState<SpeechSynthesisVoice[]>([]);
+  const [voiceChoice,setVoiceChoice]=useState("auto");
+  const [voiceSpeaking,setVoiceSpeaking]=useState(false);
   const [micOn,setMicOn]=useState(false);
   const [camOn,setCamOn]=useState(false);
   const [camStatus,setCamStatus]=useState("Cámara apagada");
@@ -94,17 +102,51 @@ export default function Home(){
     const timer=setInterval(()=>{index=Math.min(dialogue.length,index+3);setTyped(dialogue.slice(0,index));if(index===dialogue.length)clearInterval(timer);},18);
     return()=>clearInterval(timer);
   },[dialogue]);
+  // Las voces instaladas varían entre Opera, Safari, Chrome y cada sistema operativo.
   useEffect(()=>{
-    if(!voiceOn||typeof window==="undefined"||!window.speechSynthesis)return;
+    if(typeof window==="undefined"||!window.speechSynthesis)return;
+    const syncVoices=()=>setAvailableVoices(window.speechSynthesis.getVoices().filter(v=>v.lang.toLowerCase().startsWith("es")));
+    syncVoices();
+    window.speechSynthesis.addEventListener?.("voiceschanged",syncVoices);
+    return()=>window.speechSynthesis.removeEventListener?.("voiceschanged",syncVoices);
+  },[]);
+  const preferredVoice=useMemo(()=>{
+    if(voiceChoice!=="auto"){
+      const chosen=availableVoices.find(v=>v.voiceURI===voiceChoice);
+      if(chosen)return chosen;
+    }
+    const feminine=/paulina|m[oó]nica|helena|luc[ií]a|mar[ií]a|sof[ií]a|sabina|carmen|paloma|elvira|alejandra|ximena|catalina|lupe|jimena|alma|isabela|rosa|dalia|female/i;
+    const masculine=/jorge|diego|juan|pablo|ra[uú]l|enrique|carlos|antonio|andr[eé]s|daniel|manuel|mario|[aá]lvaro|ricardo|male/i;
+    return [...availableVoices].sort((a,b)=>{
+      const score=(v:SpeechSynthesisVoice)=>(feminine.test(v.name)?50:0)-(masculine.test(v.name)?50:0)+(v.lang.toLowerCase()==="es-mx"?15:0)+(/natural|premium|enhanced/i.test(v.name)?4:0);
+      return score(b)-score(a);
+    })[0]||null;
+  },[availableVoices,voiceChoice]);
+  useEffect(()=>{
+    if(!voiceOn||typeof window==="undefined"||!window.speechSynthesis){setVoiceSpeaking(false);return;}
     window.speechSynthesis.cancel();
     const utterance=new SpeechSynthesisUtterance(dialogue);
-    utterance.lang="es-MX";utterance.rate=1.04;utterance.pitch=1.12;
-    const voices=window.speechSynthesis.getVoices();
-    const voice=voices.find(v=>v.lang.toLowerCase()==="es-mx")||voices.find(v=>v.lang.startsWith("es"));
-    if(voice)utterance.voice=voice;
+    if(preferredVoice)utterance.voice=preferredVoice;
+    utterance.lang=preferredVoice?.lang||"es-MX";
+    utterance.rate=.91;utterance.pitch=1.13;utterance.volume=.95;
+    utterance.onstart=()=>setVoiceSpeaking(true);
+    utterance.onend=()=>setVoiceSpeaking(false);
+    utterance.onerror=()=>setVoiceSpeaking(false);
     window.speechSynthesis.speak(utterance);
-    return()=>window.speechSynthesis.cancel();
-  },[dialogue,voiceOn]);
+    return()=>{
+      utterance.onstart=null;utterance.onend=null;utterance.onerror=null;
+      window.speechSynthesis.cancel();
+    };
+  },[dialogue,voiceOn,preferredVoice]);
+  const previewVoice=()=>{
+    if(typeof window==="undefined"||!window.speechSynthesis)return;
+    window.speechSynthesis.cancel();
+    const sample=new SpeechSynthesisUtterance("¡Hola! Soy Lira, tu mercadera de mundos. ¿Qué aventura te gustaría descubrir hoy?");
+    if(preferredVoice)sample.voice=preferredVoice;
+    sample.lang=preferredVoice?.lang||"es-MX";sample.rate=.91;sample.pitch=1.13;
+    sample.onstart=()=>setVoiceSpeaking(true);sample.onend=()=>setVoiceSpeaking(false);sample.onerror=()=>setVoiceSpeaking(false);
+    window.speechSynthesis.speak(sample);
+  };
 
   const goShop=useCallback(()=>{
     if(pendingRef.current)return;
@@ -222,7 +264,8 @@ export default function Home(){
       <button className="brand" onClick={goShop}><span className="brand-icon"><Sparkles size={22}/></span><span><small>EL MUNDO JUGANDO AL MISMO TIEMPO</small><strong>La tienda de los mundos</strong></span></button>
       <div className="top-center"><span className="live-dot"/>{mode==="live"?"CIFRAS DE STEAM":"MODO DEMOSTRACIÓN"}<span className="center-separator">·</span>Actualizado {updateTime}</div>
       <nav className="top-actions" aria-label="Controles">
-        <button className={voiceOn?"icon-button active":"icon-button"} title="Voz del NPC" aria-label="Voz del NPC" onClick={()=>{setVoiceOn(v=>!v);window.speechSynthesis?.cancel();}}>{voiceOn?<Volume2 size={19}/>:<VolumeX size={19}/>}</button>
+        <button className={voiceOn?"icon-button active":"icon-button"} title={voiceOn?"Silenciar a Lira":"Activar voz de Lira"} aria-label={voiceOn?"Silenciar a Lira":"Activar voz de Lira"} onClick={()=>{setVoiceOn(v=>!v);window.speechSynthesis?.cancel();}}>{voiceOn?<Volume2 size={19}/>:<VolumeX size={19}/>}</button>
+        <button className="icon-button" title="Elegir voz de Lira" aria-label="Elegir voz de Lira" onClick={()=>setShowVoiceSettings(true)}><Settings2 size={19}/></button>
         <button className={micOn?"icon-button active":"icon-button"} title="Hablarle a Lira" aria-label="Hablarle a Lira" onClick={toggleMic}>{micOn?<Mic size={19}/>:<MicOff size={19}/>}</button>
         <button className={camOn?"icon-button active":"icon-button"} title="Gestos con cámara" aria-label="Gestos con cámara" onClick={toggleCamera}>{camOn?<Camera size={19}/>:<CameraOff size={19}/>}</button>
         <button className="icon-button" title="Ayuda" aria-label="Ayuda" onClick={()=>setShowGuide(true)}><HelpCircle size={19}/></button>
@@ -280,6 +323,21 @@ export default function Home(){
     {micOn&&<div className="listening-pill"><span/> <Mic size={15}/> Escuchando... di un comando</div>}
     {mode==="demo"&&<div className="demo-stamp">PROTOTIPO · CIFRAS DE EJEMPLO</div>}
 
+    {showVoiceSettings&&<div className="overlay-backdrop" onClick={()=>setShowVoiceSettings(false)}><div className="overlay-card voice-card" onClick={e=>e.stopPropagation()}>
+      <button className="close-modal" onClick={()=>setShowVoiceSettings(false)} aria-label="Cerrar"><X size={20}/></button>
+      <div className="modal-badge"><Volume2 size={20}/></div><h2>La voz de Lira</h2>
+      <p>Buscamos una voz femenina, cálida y cercana en español. La selección depende de las voces instaladas en tu computadora.</p>
+      <label className="voice-label" htmlFor="lira-voice">Elige su voz</label>
+      <select id="lira-voice" className="voice-select" value={voiceChoice} onChange={e=>setVoiceChoice(e.target.value)}>
+        <option value="auto">Automática · priorizar voz femenina en español</option>
+        {availableVoices.map(v=><option key={v.voiceURI} value={v.voiceURI}>{v.name} · {v.lang}</option>)}
+      </select>
+      <p className="voice-hint">{availableVoices.length?("Voz elegida: "+(preferredVoice?.name||"predeterminada")+". Ritmo suave y tono amable."):"Tu navegador todavía no ha mostrado voces en español. Prueba abrir la página en Safari o instalar una voz en macOS."}</p>
+      <div className="voice-actions">
+        <button className="action-secondary" onClick={previewVoice}><Volume2 size={16}/> Escuchar ejemplo</button>
+        <button className="action-primary" onClick={()=>{setShowVoiceSettings(false);setVoiceOn(true);}}><Check size={16}/> Usar esta voz</button>
+      </div>
+    </div></div>}
     {showGuide&&<div className="overlay-backdrop" onClick={()=>setShowGuide(false)}><div className="overlay-card" onClick={e=>e.stopPropagation()}>
       <button className="close-modal" onClick={()=>setShowGuide(false)} aria-label="Cerrar"><X size={20}/></button><div className="modal-badge"><Sparkles size={20}/></div><h2>¿Cómo se juega?</h2>
       <p>Habla con Lira, inspecciona reliquias y descubre los mundos que representan.</p>
