@@ -150,19 +150,28 @@ export default function Home(){
 
   const goShop=useCallback(()=>{
     if(pendingRef.current)return;
-    setScreen("shop");setSelected(null);setFeedback("");setBusy(false);
+    setScreen("shop");setSelected(null);setFeedback("");setBusy(false);setActionKind("none");setChoiceId(null);setHoveredGame(null);setLiraReaction("");
   },[]);
   const nextWorlds=useCallback(async()=>{
     if(pendingRef.current)return;
-    pendingRef.current=true;setBusy(true);setFeedback("¡Apartemos estas reliquias! Tengo más mundos que mostrarte...");
-    await pause(650);setPage(p=>(p+1)%Math.max(1,Math.ceil(games.length/3)));
-    setScreen("shop");setSelected(null);setBusy(false);
-    await pause(220);setFeedback("");pendingRef.current=false;
+    pendingRef.current=true;setActionKind("swap");setChoiceId(null);setHoveredGame(null);
+    setBusy(true);setLiraReaction("¡Un momento! Tengo más tesoros...");
+    setFeedback("¡Apartemos estas reliquias! Tengo más mundos que mostrarte...");
+    await pause(850);
+    setPage(p=>(p+1)%Math.max(1,Math.ceil(games.length/3)));
+    setScreen("shop");setSelected(null);setActionKind("none");setBusy(false);
+    setLiraReaction("¡Mira estas nuevas reliquias!");
+    await pause(900);
+    setFeedback("");setLiraReaction("");pendingRef.current=false;
   },[games.length]);
   const selectGame=useCallback(async(game:RankedGame)=>{
     if(pendingRef.current)return;
-    pendingRef.current=true;setSelected(game);setBusy(true);setFeedback("¡Ah, esa! Dame un segundo, voy a despejar el mostrador...");
-    await pause(730);setScreen("detail");setBusy(false);setFeedback("");pendingRef.current=false;
+    pendingRef.current=true;setSelected(game);setChoiceId(game.id);setActionKind("pick");
+    setHoveredGame(null);setBusy(true);setLiraReaction("¡Gran elección! Mira de cerca...");
+    setFeedback("¡Ah, esa! Dame un segundo, voy a despejar el mostrador...");
+    await pause(1050);
+    setScreen("detail");setBusy(false);setActionKind("none");setFeedback("");setLiraReaction("");
+    pendingRef.current=false;
   },[]);
   const beginConcept=()=>{setConceptStep(0);setFeedback("");setScreen("concept");};
   const beginStory=()=>{setStoryStep(0);setFeedback("");setScreen("story");};
@@ -273,17 +282,21 @@ export default function Home(){
     </header>
 
     <section className="experience" aria-label="Tienda RPG interactiva">
-      <div className={`game-stage scene-${screen} ${busy?"scene-busy":""}`}>
+      <div className={`game-stage scene-${screen} ${busy?"scene-busy":""} action-${actionKind} ${voiceSpeaking?"npc-speaking":""}`}>
         <div className="scene-overlay" aria-hidden="true"/>
         <div className="top-stage-label">✧ &nbsp; LA TIENDA ENTRE MUNDOS &nbsp; ✧</div>
         {screen==="shop"&&<div className="shelf-indicator">COLECCIÓN {page+1} / {pages}<div>{Array.from({length:pages},(_,i)=><i key={i} className={i===page?"selected":""}/>)}</div></div>}
         <div className={`npc-wrap ${busy?"npc-action":""} ${screen==="detail"?"npc-inspect":""} ${screen==="story"?"npc-story":""}`}>
           <img className="npc-image" src="/assets/merchant.png" alt="Lira, la mercadera, sonríe detrás del mostrador" draggable={false}/><span className="npc-sparkle a">✦</span><span className="npc-sparkle b">✧</span>
         </div>
+        {(liraReaction||(screen==="shop"&&hoveredGame))&&<div className="npc-callout" role="status"><span>✦</span>{liraReaction||("¿Quieres explorar "+hoveredGame+"?")}</div>}
         <div className="counter-lip" aria-hidden="true"/>
         {screen==="intro"&&<div className="welcome-crest"><span>✦</span><small>BIENVENIDA A</small><strong>LA TIENDA ENTRE MUNDOS</strong><span>✦</span></div>}
         {screen==="shop"&&<div className="relic-row" role="group" aria-label="Reliquias seleccionables">
-          {shelf.map((game,index)=><button key={game.id} className={`relic-slot relic-${index} ${busy?"relic-disappear":""} ${camOn&&pointed===index?"gesture-target":""}`} onClick={()=>void selectGame(game)} disabled={busy} style={{["--relic-glow" as string]:game.accent}}>
+          {shelf.map((game,index)=><button key={game.id}
+            className={`relic-slot relic-${index} ${busy?(actionKind==="pick"?(choiceId===game.id?"relic-featured":index<shelf.findIndex(g=>g.id===choiceId)?"relic-eject-left":"relic-eject-right"):"relic-disappear"):""} ${camOn&&pointed===index?"gesture-target":""}`}
+            onClick={()=>void selectGame(game)} onMouseEnter={()=>setHoveredGame(game.name)} onMouseLeave={()=>setHoveredGame(null)} onFocus={()=>setHoveredGame(game.name)} onBlur={()=>setHoveredGame(null)}
+            disabled={busy} style={{["--relic-glow" as string]:game.accent}}>
             <span className="relic-halo"/><span className="relic-symbol"><RelicArt icon={game.icon} accent={game.accent}/></span><span className="relic-platform"/><span className="relic-number">0{page*3+index+1}</span><strong className="relic-title">{game.name}</strong><small className="relic-subtitle">{game.itemName}</small>
           </button>)}
         </div>}
@@ -306,7 +319,7 @@ export default function Home(){
         <span className="corner-ornament left"/><span className="corner-ornament right"/>
       </div>
 
-      <div className="dialog-panel"><div className="portrait"><img src="/assets/merchant.png" alt="Retrato de Lira"/></div>
+      <div className="dialog-panel"><div className={voiceSpeaking?"portrait portrait-talking":"portrait"}><img src="/assets/merchant.png" alt="Retrato de Lira"/></div>
         <div className="dialog-copy"><div className="speaker-line"><strong>LIRA</strong><span>· MERCADERA DE MUNDOS</span></div><p aria-live="polite">{typed}<span className="cursor-blink">▌</span></p></div>
         <div className="dialog-actions">
           {screen==="intro"&&<><button className="action-primary" onClick={advance}>{introStep===intro.length-1?"Entrar a la tienda":"Continuar"} <ChevronRight size={17}/></button><button className="action-secondary" onClick={goShop}>Saltar introducción</button></>}
