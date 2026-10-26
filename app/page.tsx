@@ -459,7 +459,7 @@ export default function Home(){
       <button className="close-modal" onClick={()=>setShowSources(false)} aria-label="Cerrar"><X size={20}/></button><div className="modal-badge"><Info size={20}/></div><h2>Acerca de estas cifras</h2>
       <p>La primera versión consulta jugadores conectados mediante Steam. El ranking se ordena <strong>únicamente entre {games.length} juegos de nuestro catálogo</strong>, no entre todos los videojuegos del mundo.</p>
       <p><strong>Estado:</strong> {mode==="live"?"datos consultados a Steam":"modo demostración con cifras inventadas"}. {coverage}.</p>
-      <p>El pico de 24 horas y el máximo histórico se muestran pendientes porque requieren una fuente histórica complementaria.</p>
+      <p>La participación en la muestra indica el porcentaje de jugadores activos que corresponde a cada juego, respecto al total de los títulos consultados en ese momento. No es una cuota de mercado ni un pico histórico.</p>
       <a href="https://store.steampowered.com/charts/mostplayed" target="_blank" rel="noreferrer">Ranking público de Steam <ExternalLink size={15}/></a>
       <button className="action-primary modal-action" onClick={()=>setShowSources(false)}>Regresar <ArrowRight size={16}/></button>
     </div></div>}
