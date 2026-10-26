@@ -17,7 +17,7 @@
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "lucide-react": "^0.468.0",
-    "@mediapipe/tasks-vision": "0.10.22"
+    "@mediapipe/tasks-vision": "0.10.21"
   },
   "devDependencies": {
     "@types/node": "^22.19.19",
