@@ -154,7 +154,7 @@ export default function Home(){
     audioRef.current?.pause();
     window.speechSynthesis?.cancel();
     setRecordedVoiceError(false);
-    const clip=new Audio("/audio/lira-intro-01.mp3");
+    const clip=new Audio("/audio/lira-intro-01%20(1).mp3");
     setIntroStep(0);
     audioRef.current=clip;
     // Ajuste aproximado de los subtítulos a las pausas detectadas en la grabación.
