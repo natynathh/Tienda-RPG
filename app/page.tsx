@@ -179,7 +179,7 @@ export default function Home(){
       setCamOn(true);setCamStatus("Cargando reconocimiento...");
       // MediaPipe is loaded only when the user explicitly enables the camera.
       const vision=await import("@mediapipe/tasks-vision");
-      const files=await vision.FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm");
+      const files=await vision.FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21/wasm");
       recognizerRef.current=await vision.GestureRecognizer.createFromOptions(files,{
         baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task"},
         runningMode:"VIDEO",numHands:1
