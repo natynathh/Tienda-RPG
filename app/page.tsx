@@ -418,7 +418,7 @@ export default function Home(){
       <label className="voice-label" htmlFor="lira-music-volume">Música ambiental · {musicVolume}%</label>
       <input id="lira-music-volume" className="music-volume-range" type="range" min="0" max="20" step="1" value={musicVolume} onChange={e=>setMusicVolume(Number(e.target.value))} aria-label="Volumen de música ambiental"/>
       <div className="music-controls"><button className="action-secondary" onClick={toggleMusic}><Music2 size={15}/> {musicOn?"Pausar música":"Reproducir música"}</button><small>Volumen inicial 8 %. Al hablar Lira, la música baja automáticamente.</small></div>
-      {musicError&&<p className="voice-hint" role="status">Falta subir el archivo <code>blue-harbor-ambient.mp3</code> a <code>public/audio/</code> en GitHub.</p>
+      {musicError&&<p className="voice-hint" role="status">Falta subir el archivo <code>blue-harbor-ambient.mp3</code> a <code>public/audio/</code> en GitHub.</p>}
       <div className="voice-actions">
         <button className="action-secondary" onClick={previewVoice}><Volume2 size={16}/> Escuchar ejemplo</button>
         <button className="action-primary" onClick={()=>{setShowVoiceSettings(false);if(voiceMode==="system")setVoiceOn(true);}}><Check size={16}/> Guardar selección</button>
