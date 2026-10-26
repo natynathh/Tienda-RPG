@@ -19,11 +19,19 @@ const concept=[
   "Los números de jugadores conectados muestran presencia simultánea, no la calidad de los vínculos. Por eso la historia final nos invita a mirar más allá de las estadísticas."
 ];
 const story=[
-  "He contado millones de presencias en mis libros... pero hay personas que no caben en una cifra. ¿Quieres escuchar la historia de Mats?",
-  "Mats Steen era un joven noruego que vivía con distrofia muscular de Duchenne. En World of Warcraft fue Ibelin, un personaje con amistades, aventuras y una comunidad que lo conocía profundamente.",
-  "Tras su muerte, su familia descubrió la amplitud de esa vida social virtual. El documental «La extraordinaria vida de Ibelin» reconstruye parte de esos vínculos.",
-  "Una cifra dice cuántas personas están conectadas. No cuenta sus risas, su apoyo ni cuánto puede significar ese mundo para alguien. Detrás de cada jugador hay una historia."
+  "Acércate un poquito... Hay algo que quiero contarte. Verás... no todas las grandes aventuras comienzan con una espada, un hechizo o un dragón. Algunas comienzan... frente a una pantalla. Hace algunos años, en un lugar muy lejano, en Noruega, vivía un joven llamado Mats Steen. Mats tenía una enfermedad que debilitaba sus músculos y limitaba cada vez más sus movimientos. Pero lo que muchos desconocían... era que, más allá de su habitación, existía otro mundo que formaba una parte importantísima de su vida.",
+  "Y fue allí, en las tierras de Azeroth, dentro del videojuego World of Warcraft, donde Mats dio vida a un personaje llamado Ibelin. ¡Ah, pero Ibelin no era un personaje cualquiera! Era un aventurero que recorría caminos, conocía personas, hacía amigos... y hasta llegó a enamorarse. Junto a otros jugadores compartía historias, risas, discusiones y momentos que recordarían durante mucho tiempo. Porque para Mats, aquel mundo no era simplemente un juego. Era también un lugar donde podía construir relaciones y formar parte de una comunidad.",
+  "Pero... como sucede con todas las historias, llegó un día que nadie deseaba. En 2014, Mats falleció a los veinticinco años. Su familia temía que hubiera vivido una vida solitaria, sin imaginar todas las amistades que había construido. Hasta que ocurrió algo inesperado... Empezaron a llegar mensajes. Mensajes de personas de diferentes lugares del mundo que habían conocido a Mats como Ibelin. Personas que lo recordaban con cariño, que compartían sus aventuras y que hablaban de cuánto había significado para ellas. Y fue entonces cuando su familia descubrió una parte de su vida que hasta ese momento desconocía.",
+  "¿Lo ves ahora, viajero? Cuando miramos estos mundos, encontramos números... miles, cientos de miles, incluso millones de jugadores conectados. Pero esos números no pueden contarnos todas sus historias. No nos dicen quién encontró un amigo, quién compartió una aventura o quién halló un lugar donde sentirse acompañado. La historia de Mats nos recuerda que las relaciones que nacen en un mundo virtual también pueden ser profundamente reales. Así que, la próxima vez que observes cuántas personas están jugando al mismo tiempo... recuerda algo. Detrás de cada cifra hay una persona. Y cada persona... tiene una historia que contar."
 ];
+const storyTitles=["Una historia diferente","El mundo de Ibelin","El descubrimiento","Más allá de los números"];
+const storyBrief=[
+  "Acércate un poquito... quiero contarte una historia que comenzó frente a una pantalla.",
+  "En Azeroth, Mats se convirtió en Ibelin, un aventurero que encontró una comunidad.",
+  "Su familia descubrió cuántas vidas había tocado gracias a los mensajes de sus amigos.",
+  "Detrás de cada cifra hay una persona. Y cada persona tiene una historia que contar."
+];
+const storyFiles=["/audio/lira-story-01.mp3","/audio/lira-story-02.mp3","/audio/lira-story-03.mp3","/audio/lira-story-04.mp3"];
 const pause=(ms:number)=>new Promise(resolve=>setTimeout(resolve,ms));
 
 function CountUp({number}:{number:number}){
@@ -105,7 +113,7 @@ export default function Home(){
   const dialogue=screen==="intro"?intro[introStep]:screen==="shop"?
     (feedback||"He colocado tres reliquias sobre mi mostrador. Cada una representa un mundo multijugador. Elige la que te intrigue... ¡o pídeme otras!"):
     screen==="detail"?(feedback||selected?.dialogue||"Acércate a la reliquia."):
-    screen==="concept"?concept[conceptStep]:story[storyStep];
+    screen==="concept"?concept[conceptStep]:storyBrief[storyStep];
   useEffect(()=>{
     setTyped("");let index=0;
     const timer=setInterval(()=>{index=Math.min(dialogue.length,index+3);setTyped(dialogue.slice(0,index));if(index===dialogue.length)clearInterval(timer);},18);
@@ -148,7 +156,7 @@ export default function Home(){
     };
   },[dialogue,voiceOn,preferredVoice,voiceMode]);
   useEffect(()=>{
-    if(screen!=="intro"&&audioRef.current){
+    if(screen!=="intro"&&screen!=="story"&&audioRef.current){
       audioRef.current.pause();audioRef.current=null;
       setVoiceSpeaking(false);setVoiceOn(false);
     }
@@ -172,18 +180,35 @@ export default function Home(){
     clip.onerror=()=>{setVoiceOn(false);setVoiceSpeaking(false);setRecordedVoiceError(true);};
     void clip.play().catch(()=>{setVoiceOn(false);setVoiceSpeaking(false);setRecordedVoiceError(true);});
   };
+  const playStoryChapter=(chapter:number)=>{
+    audioRef.current?.pause();
+    window.speechSynthesis?.cancel();
+    if(typeof window==="undefined")return;
+    const clip=new Audio(storyFiles[chapter]);
+    audioRef.current=clip;
+    clip.onplay=()=>{setVoiceOn(true);setVoiceSpeaking(true);};
+    clip.onended=()=>{setVoiceOn(false);setVoiceSpeaking(false);};
+    clip.onerror=()=>{setVoiceOn(false);setVoiceSpeaking(false);};
+    void clip.play().catch(()=>{setVoiceOn(false);setVoiceSpeaking(false);});
+  };
+  const stopNarration=()=>{
+    audioRef.current?.pause();
+    audioRef.current=null;
+    window.speechSynthesis?.cancel();
+    setVoiceOn(false);
+    setVoiceSpeaking(false);
+  };
   const toggleVoice=()=>{
     if(voiceOn){
       audioRef.current?.pause();window.speechSynthesis?.cancel();
       setVoiceOn(false);setVoiceSpeaking(false);return;
     }
-    if(voiceMode==="recorded"){
-      if(screen==="intro")playRecordedIntro();
-      else setFeedback("Esta escena todavía no tiene audio grabado. Los diálogos siguen disponibles en texto.");
-    }else setVoiceOn(true);
+    if(screen==="intro")playRecordedIntro();
+    else if(screen==="story")playStoryChapter(storyStep);
+    else if(voiceMode==="system")setVoiceOn(true);
   };
   const previewVoice=()=>{
-    if(voiceMode==="recorded"){setScreen("intro");playRecordedIntro();return;}
+    if(voiceMode==="recorded"){if(screen==="story")playStoryChapter(storyStep);else {setScreen("intro");playRecordedIntro();}return;}
     if(typeof window==="undefined"||!window.speechSynthesis)return;
     window.speechSynthesis.cancel();
     const sample=new SpeechSynthesisUtterance("¡Hola! Soy Lira, tu mercadera de mundos. ¿Qué aventura te gustaría descubrir hoy?");
@@ -214,6 +239,7 @@ export default function Home(){
   },[]);
   const goShop=useCallback(()=>{
     if(pendingRef.current)return;
+    stopNarration();
     setScreen("shop");setSelected(null);setFeedback("");setBusy(false);setActionKind("none");setChoiceId(null);setHoveredGame(null);setLiraReaction("");
   },[]);
   const nextWorlds=useCallback(async()=>{
@@ -238,15 +264,18 @@ export default function Home(){
     setScreen("detail");setBusy(false);setActionKind("none");setFeedback("");setLiraReaction("");
     pendingRef.current=false;
   },[playWoosh]);
-  const beginConcept=()=>{setConceptStep(0);setFeedback("");setScreen("concept");};
-  const beginStory=()=>{setStoryStep(0);setFeedback("");setScreen("story");};
+  const beginConcept=()=>{stopNarration();setConceptStep(0);setFeedback("");setScreen("concept");};
+  const beginStory=()=>{stopNarration();setStoryStep(0);setFeedback("");setScreen("story");playStoryChapter(0);};
   const advance=()=>{
     if(screen==="intro"){
       if(audioRef.current&&!audioRef.current.paused){audioRef.current.pause();setVoiceOn(false);setVoiceSpeaking(false);}
       if(introStep<intro.length-1)setIntroStep(s=>s+1);else goShop();
     }
     if(screen==="concept"){if(conceptStep<concept.length-1)setConceptStep(s=>s+1);else goShop();}
-    if(screen==="story"){if(storyStep<story.length-1)setStoryStep(s=>s+1);else goShop();}
+    if(screen==="story"){
+      if(storyStep<story.length-1){const next=storyStep+1;setStoryStep(next);playStoryChapter(next);}
+      else goShop();
+    }
   };
   const gestureAction=useCallback((action:string)=>{
     if(action==="next"&&screen!=="intro")void nextWorlds();
@@ -375,15 +404,15 @@ export default function Home(){
           <div className="detail-relic" style={{["--relic-glow" as string]:selected.accent}}><span className="detail-orbit a"/><span className="detail-orbit b"/><RelicArt icon={selected.icon} accent={selected.accent}/></div>
           <div className="detail-info"><div className="eyebrow">{selected.genre.toUpperCase()} · RELIQUIA DESCUBIERTA</div><h2>{selected.name}</h2><div className="detail-tag">{selected.subtitle}</div>
             <div className="big-number"><CountUp number={selected.players}/></div><div className="number-label">JUGADORES CONECTADOS {mode==="live"?"EN STEAM":"· DEMOSTRACIÓN"}</div>
-            <div className="stats-grid"><div><span>PICO 24 H</span><strong>—</strong><small>Pendiente de fuente histórica</small></div><div><span>RANKING</span><strong>#{games.findIndex(g=>g.id===selected.id)+1}</strong><small>Entre {games.length} juegos consultados</small></div></div>
+            <div className="stats-grid"><div><span>PARTICIPACIÓN EN LA MUESTRA</span><strong>{(selected.players/Math.max(1,games.reduce((sum,g)=>sum+g.players,0))*100).toLocaleString("es-MX",{minimumFractionDigits:1,maximumFractionDigits:1})}%</strong><small>De {formatPlayers(games.reduce((sum,g)=>sum+g.players,0))} jugadores en {games.length} títulos consultados</small></div><div><span>RANKING</span><strong>#{games.findIndex(g=>g.id===selected.id)+1}</strong><small>Entre {games.length} juegos consultados</small></div></div>
             <p>{selected.description}</p>
           </div>
         </div>}
         {(screen==="story"||screen==="concept")&&<div className={`tale-card ${screen}-card`}>
           <div className="tale-emblem">{screen==="story"?<BookOpen size={27}/>:<Compass size={27}/>}</div>
           <div className="eyebrow">{screen==="story"?"MÁS ALLÁ DE LOS NÚMEROS":"EL ORIGEN DEL PROYECTO"}</div>
-          <h2>{screen==="story"?"La vida extraordinaria de Ibelin":"Un universo de presencias"}</h2><div className="rule-flourish">✦ ───────── ✦</div>
-          <p>{screen==="story"?["Una historia detrás de millones de pantallas.","Un mundo virtual también puede ser un hogar.","Basado en la historia real de Mats Steen.","Cada jugador es una historia."][storyStep]:["Una pregunta sobre la magnitud de lo simultáneo.","La metáfora detrás de nuestra tienda.","Los datos y sus límites humanos."][conceptStep]}</p>
+          <h2>{screen==="story"?storyTitles[storyStep]:"Un universo de presencias"}</h2><div className="rule-flourish">✦ ───────── ✦</div>
+          <p className={screen==="story"?"story-full-script":""}>{screen==="story"?story[storyStep]:["Una pregunta sobre la magnitud de lo simultáneo.","La metáfora detrás de nuestra tienda.","Los datos y sus límites humanos."][conceptStep]}</p>
           <div className="tale-progress">{screen==="story"?`PÁGINA ${storyStep+1} DE ${story.length}`:`CAPÍTULO ${conceptStep+1} DE ${concept.length}`}</div>
           {screen==="story"&&storyStep>=2&&<a target="_blank" rel="noreferrer" href="https://media.netflix.com/en/only-on-netflix/81759420" className="story-source">Fuente del documental <ExternalLink size={13}/></a>}
         </div>}
@@ -391,12 +420,12 @@ export default function Home(){
       </div>
 
       <div className="dialog-panel"><div className={voiceSpeaking?"portrait portrait-talking":"portrait"}><img src="/assets/merchant.png" alt="Retrato de Lira"/></div>
-        <div className="dialog-copy"><div className="speaker-line"><strong>LIRA</strong><span>· MERCADERA DE MUNDOS</span></div><p aria-live="polite">{typed}<span className="cursor-blink">▌</span></p>{screen==="intro"&&recordedVoiceError&&<small className="voice-file-hint">Falta añadir el archivo de Firefly en GitHub. Puedes continuar en texto mientras tanto.</small>}</div>
+        <div className="dialog-copy"><div className="speaker-line"><strong>LIRA</strong><span>· MERCADERA DE MUNDOS</span></div><p aria-live="polite">{typed}<span className="cursor-blink">▌</span></p></div>
         <div className="dialog-actions">
           {screen==="intro"&&<><button className="action-primary" onClick={advance}>{introStep===intro.length-1?"Entrar a la tienda":"Continuar"} <ChevronRight size={17}/></button><button className="action-secondary" onClick={toggleVoice}>{voiceSpeaking?"Pausar voz":"Escuchar a Lira"} <Volume2 size={16}/></button><button className="action-secondary" onClick={goShop}>Saltar introducción</button></>}
           {screen==="shop"&&<><button className="action-primary" onClick={()=>void nextWorlds()} disabled={busy}><RotateCcw size={15}/> Otros mundos</button><button className="action-secondary" onClick={beginConcept}><ScrollText size={15}/> El proyecto</button><button className="action-secondary" onClick={beginStory}><BookOpen size={15}/> Una historia</button></>}
           {screen==="detail"&&<><button className="action-primary" onClick={goShop}><ArrowLeft size={15}/> Volver a la tienda</button><button className="action-secondary" onClick={()=>void nextWorlds()}><RotateCcw size={15}/> Más mundos</button><button className="action-secondary" onClick={beginStory}><BookOpen size={15}/> La historia</button></>}
-          {(screen==="concept"||screen==="story")&&<><button className="action-primary" onClick={advance}>{(screen==="concept"?conceptStep===concept.length-1:storyStep===story.length-1)?"Volver a la tienda":"Siguiente página"} <ArrowRight size={16}/></button><button className="action-secondary" onClick={goShop}>Cerrar libro</button></>}
+          {(screen==="concept"||screen==="story")&&<><button className="action-primary" onClick={advance}>{(screen==="concept"?conceptStep===concept.length-1:storyStep===story.length-1)?"Volver a la tienda":"Siguiente página"} <ArrowRight size={16}/></button>{screen==="story"&&<button className="action-secondary" onClick={toggleVoice}>{voiceSpeaking?"Pausar relato":"Escuchar relato"} <Volume2 size={15}/></button>}<button className="action-secondary" onClick={goShop}>Cerrar libro</button></>}
         </div>
       </div>
     </section>
