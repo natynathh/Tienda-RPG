@@ -434,31 +434,20 @@ export default function Home(){
     {camOn&&<div className="camera-caption"><Hand size={14}/>{camStatus}</div>}
     {!camOn&&camStatus!=="Cámara apagada"&&<div className="status-toast" role="status" onClick={()=>setCamStatus("Cámara apagada")}>{camStatus} <X size={12}/></div>}
     {micOn&&<div className="listening-pill"><span/> <Mic size={15}/> Escuchando... di un comando</div>}
-    {musicError&&<div className="status-toast music-warning" role="status" onClick={()=>setMusicError(false)}>Para activar la música, sube blue-harbor-ambient.mp3 a public/audio <X size={12}/></div>}
+    {musicError&&<div className="status-toast music-warning" role="status" onClick={()=>setMusicError(false)}>No fue posible reproducir la música <X size={12}/></div>}
     {mode==="demo"&&<div className="demo-stamp">PROTOTIPO · CIFRAS DE EJEMPLO</div>}
 
     {showVoiceSettings&&<div className="overlay-backdrop" onClick={()=>setShowVoiceSettings(false)}><div className="overlay-card voice-card" onClick={e=>e.stopPropagation()}>
       <button className="close-modal" onClick={()=>setShowVoiceSettings(false)} aria-label="Cerrar"><X size={20}/></button>
-      <div className="modal-badge"><Volume2 size={20}/></div><h2>La voz de Lira</h2>
-      <p>Queremos que Lira se sienta cercana: la opción recomendada es una voz realista, pregrabada con Adobe Firefly.</p>
-      <label className="voice-label" htmlFor="lira-mode">Tipo de voz</label>
-      <select id="lira-mode" className="voice-select" value={voiceMode} onChange={e=>{audioRef.current?.pause();window.speechSynthesis?.cancel();setVoiceSpeaking(false);setVoiceOn(false);setVoiceMode(e.target.value as "recorded"|"system");}}>
-        <option value="recorded">Grabación natural con Firefly (recomendada)</option>
-        <option value="system">Síntesis de voz del navegador (opcional)</option>
-      </select>
-      {voiceMode==="system"?<><label className="voice-label" htmlFor="lira-voice">Elige una voz en español</label><select id="lira-voice" className="voice-select" value={voiceChoice} onChange={e=>setVoiceChoice(e.target.value)}>
-        <option value="auto">Automática · priorizar voz femenina</option>
-        {availableVoices.map(v=><option key={v.voiceURI} value={v.voiceURI}>{v.name} · {v.lang}</option>)}
-      </select></>:<p className="voice-hint">Tenemos una bienvenida grabada. Los demás diálogos todavía se mostrarán por escrito hasta grabarlos. Si el archivo de audio aún no está disponible, súbelo a <code>public/audio/lira-intro-01.mp3</code> en GitHub.</p>}
-      {recordedVoiceError&&voiceMode==="recorded"&&<p className="voice-hint" role="status">Aún no está el audio en el sitio. Puedes subir el MP3 al repositorio, sin cambiar el código.</p>}
+      <div className="modal-badge"><Volume2 size={20}/></div><h2>Sonido de la tienda</h2>
+      <p>La voz de Lira te acompaña durante la bienvenida y su relato de Ibelin. Tú decides cuándo escuchar cada capítulo.</p>
+      <div className="voice-actions">
+        <button className="action-secondary" disabled={screen!=="intro"&&screen!=="story"} onClick={()=>{setShowVoiceSettings(false);toggleVoice();}}><Volume2 size={16}/> {voiceSpeaking?"Pausar narración":"Escuchar a Lira"}</button>
+      </div>
       <label className="voice-label" htmlFor="lira-music-volume">Música ambiental · {musicVolume}%</label>
       <input id="lira-music-volume" className="music-volume-range" type="range" min="0" max="20" step="1" value={musicVolume} onChange={e=>setMusicVolume(Number(e.target.value))} aria-label="Volumen de música ambiental"/>
-      <div className="music-controls"><button className="action-secondary" onClick={toggleMusic}><Music2 size={15}/> {musicOn?"Pausar música":"Reproducir música"}</button><small>Volumen inicial 8 %. Al hablar Lira, la música baja automáticamente.</small></div>
-      {musicError&&<p className="voice-hint" role="status">Falta subir el archivo <code>blue-harbor-ambient.mp3</code> a <code>public/audio/</code> en GitHub.</p>}
-      <div className="voice-actions">
-        <button className="action-secondary" onClick={previewVoice}><Volume2 size={16}/> Escuchar ejemplo</button>
-        <button className="action-primary" onClick={()=>{setShowVoiceSettings(false);if(voiceMode==="system")setVoiceOn(true);}}><Check size={16}/> Guardar selección</button>
-      </div>
+      <div className="music-controls"><button className="action-secondary" onClick={toggleMusic}><Music2 size={15}/> {musicOn?"Pausar música":"Reproducir música"}</button><small>El ambiente musical se atenúa cuando Lira está narrando.</small></div>
+      <div className="voice-actions"><button className="action-primary" onClick={()=>setShowVoiceSettings(false)}><Check size={16}/> Listo</button></div>
     </div></div>}
     {showGuide&&<div className="overlay-backdrop" onClick={()=>setShowGuide(false)}><div className="overlay-card" onClick={e=>e.stopPropagation()}>
       <button className="close-modal" onClick={()=>setShowGuide(false)} aria-label="Cerrar"><X size={20}/></button><div className="modal-badge"><Sparkles size={20}/></div><h2>¿Cómo se juega?</h2>
