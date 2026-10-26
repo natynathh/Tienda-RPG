@@ -8,7 +8,10 @@ import { RelicArt } from "./relic";
 type Screen="intro"|"shop"|"detail"|"concept"|"story";
 type ApiResponse={mode:"live"|"demo";games:RankedGame[];fetchedAt:string;coverage:string;note:string};
 const intro=[
-  "¡Oh! ¡Una visitante! ¡Pasa, pasa! Soy Lira, guardiana de esta pequeña tienda entre mundos. Aquí no vendo armas ni pociones corrientes... Cada reliquia es una puerta hacia un mundo donde miles de personas están viviendo una aventura justo ahora. ¿Te gustaría descubrirlos conmigo?"
+  "¡Oh! ¡Una visitante! ¡Pasa, pasa! Soy Lira, guardiana de esta pequeña tienda entre mundos.",
+  "Aquí no vendo armas ni pociones corrientes...",
+  "Cada reliquia es una puerta hacia un mundo donde miles de personas están viviendo una aventura justo ahora.",
+  "¿Te gustaría descubrirlos conmigo?"
 ];
 const concept=[
   "Todo comenzó con una pregunta: ¿qué pasaría si pudiéramos ver a todas esas personas jugando al mismo tiempo?",
@@ -152,7 +155,13 @@ export default function Home(){
     window.speechSynthesis?.cancel();
     setRecordedVoiceError(false);
     const clip=new Audio("/audio/lira-intro-01.mp3");
+    setIntroStep(0);
     audioRef.current=clip;
+    // Ajuste aproximado de los subtítulos a las pausas detectadas en la grabación.
+    clip.ontimeupdate=()=>{
+      const t=clip.currentTime;
+      setIntroStep(t>=17.3?3:t>=10.8?2:t>=7.55?1:0);
+    };
     clip.onplay=()=>{setVoiceOn(true);setVoiceSpeaking(true);};
     clip.onended=()=>{setVoiceOn(false);setVoiceSpeaking(false);};
     clip.onerror=()=>{setVoiceOn(false);setVoiceSpeaking(false);setRecordedVoiceError(true);};
@@ -169,7 +178,7 @@ export default function Home(){
     }else setVoiceOn(true);
   };
   const previewVoice=()=>{
-    if(voiceMode==="recorded"){playRecordedIntro();return;}
+    if(voiceMode==="recorded"){setScreen("intro");playRecordedIntro();return;}
     if(typeof window==="undefined"||!window.speechSynthesis)return;
     window.speechSynthesis.cancel();
     const sample=new SpeechSynthesisUtterance("¡Hola! Soy Lira, tu mercadera de mundos. ¿Qué aventura te gustaría descubrir hoy?");
@@ -207,7 +216,10 @@ export default function Home(){
   const beginConcept=()=>{setConceptStep(0);setFeedback("");setScreen("concept");};
   const beginStory=()=>{setStoryStep(0);setFeedback("");setScreen("story");};
   const advance=()=>{
-    if(screen==="intro"){if(introStep<intro.length-1)setIntroStep(s=>s+1);else goShop();}
+    if(screen==="intro"){
+      if(audioRef.current&&!audioRef.current.paused){audioRef.current.pause();setVoiceOn(false);setVoiceSpeaking(false);}
+      if(introStep<intro.length-1)setIntroStep(s=>s+1);else goShop();
+    }
     if(screen==="concept"){if(conceptStep<concept.length-1)setConceptStep(s=>s+1);else goShop();}
     if(screen==="story"){if(storyStep<story.length-1)setStoryStep(s=>s+1);else goShop();}
   };
