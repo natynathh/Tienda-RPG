@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, BookOpen, Camera, CameraOff, Check, ChevronRight, Compass, ExternalLink, Hand, HelpCircle, Info, Mic, MicOff, RotateCcw, ScrollText, Sparkles, Settings2, Volume2, VolumeX, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, Camera, CameraOff, Check, ChevronRight, Compass, ExternalLink, Hand, HelpCircle, Info, Mic, MicOff, Music2, RotateCcw, ScrollText, Sparkles, Settings2, Volume2, VolumeX, X } from "lucide-react";
 import { demoRanking, formatPlayers, type RankedGame } from "./game-data";
 import { RelicArt } from "./relic";
 
@@ -59,6 +59,9 @@ export default function Home(){
   const [availableVoices,setAvailableVoices]=useState<SpeechSynthesisVoice[]>([]);
   const [voiceChoice,setVoiceChoice]=useState("auto");
   const [voiceSpeaking,setVoiceSpeaking]=useState(false);
+  const [musicOn,setMusicOn]=useState(false);
+  const [musicVolume,setMusicVolume]=useState(8);
+  const [musicError,setMusicError]=useState(false);
   const [micOn,setMicOn]=useState(false);
   const [camOn,setCamOn]=useState(false);
   const [camStatus,setCamStatus]=useState("Cámara apagada");
@@ -68,6 +71,7 @@ export default function Home(){
   const [showSources,setShowSources]=useState(false);
   const [typed,setTyped]=useState("");
   const audioRef=useRef<HTMLAudioElement|null>(null);
+  const musicRef=useRef<HTMLAudioElement|null>(null);
   const videoRef=useRef<HTMLVideoElement|null>(null);
   const streamRef=useRef<MediaStream|null>(null);
   const animationRef=useRef(0);
@@ -188,6 +192,20 @@ export default function Home(){
     window.speechSynthesis.speak(sample);
   };
 
+  // La música inicia tras interacción: el autoplay con sonido está bloqueado en muchos navegadores.
+  useEffect(()=>{
+    const track=musicRef.current;
+    if(!track)return;
+    if(!musicOn){track.pause();return;}
+    track.volume=(musicVolume/100)*(voiceSpeaking||micOn?0.35:1);
+    void track.play().catch(()=>{setMusicOn(false);setMusicError(true);});
+  },[musicOn]);
+  useEffect(()=>{
+    const track=musicRef.current;
+    if(!track)return;
+    track.volume=(musicVolume/100)*(voiceSpeaking||micOn?0.35:1);
+  },[musicVolume,voiceSpeaking,micOn]);
+  const toggleMusic=()=>{if(musicOn){setMusicOn(false);return;}setMusicError(false);setMusicOn(true);};
   const goShop=useCallback(()=>{
     if(pendingRef.current)return;
     setScreen("shop");setSelected(null);setFeedback("");setBusy(false);setActionKind("none");setChoiceId(null);setHoveredGame(null);setLiraReaction("");
@@ -197,7 +215,8 @@ export default function Home(){
     pendingRef.current=true;setActionKind("swap");setChoiceId(null);setHoveredGame(null);
     setBusy(true);setLiraReaction("¡Un momento! Tengo más tesoros...");
     setFeedback("¡Apartemos estas reliquias! Tengo más mundos que mostrarte...");
-    await pause(850);
+    // Esperar a que termine la salida de los tres objetos, sin intercambiarlos a mitad.
+    await pause(960);
     setPage(p=>(p+1)%Math.max(1,Math.ceil(games.length/3)));
     setScreen("shop");setSelected(null);setActionKind("none");setBusy(false);
     setLiraReaction("¡Mira estas nuevas reliquias!");
@@ -312,10 +331,12 @@ export default function Home(){
   const updateTime=lastUpdate?new Date(lastUpdate).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"}):"—";
   return <main className="app-shell">
     <div className="ambient-stars" aria-hidden="true"/>
+    <audio ref={musicRef} src="/audio/blue-harbor-ambient.mp3" loop preload="none" onError={()=>{setMusicOn(false);setMusicError(true);}} aria-label="Música instrumental de fondo"/>
     <header className="top-bar">
       <button className="brand" onClick={goShop}><span className="brand-icon"><Sparkles size={22}/></span><span><small>EL MUNDO JUGANDO AL MISMO TIEMPO</small><strong>La tienda de los mundos</strong></span></button>
       <div className="top-center"><span className="live-dot"/>{mode==="live"?"CIFRAS DE STEAM":"MODO DEMOSTRACIÓN"}<span className="center-separator">·</span>Actualizado {updateTime}</div>
       <nav className="top-actions" aria-label="Controles">
+        <button className={musicOn?"icon-button active music-button":"icon-button music-button"} title={musicOn?"Pausar música ambiental":"Reproducir música ambiental"} aria-label={musicOn?"Pausar música ambiental":"Reproducir música ambiental"} onClick={toggleMusic}><Music2 size={19}/></button>
         <button className={voiceOn?"icon-button active":"icon-button"} title={voiceOn?"Silenciar a Lira":"Activar voz de Lira"} aria-label={voiceOn?"Silenciar a Lira":"Activar voz de Lira"} onClick={toggleVoice}>{voiceOn?<Volume2 size={19}/>:<VolumeX size={19}/>}</button>
         <button className="icon-button" title="Elegir voz de Lira" aria-label="Elegir voz de Lira" onClick={()=>setShowVoiceSettings(true)}><Settings2 size={19}/></button>
         <button className={micOn?"icon-button active":"icon-button"} title="Hablarle a Lira" aria-label="Hablarle a Lira" onClick={toggleMic}>{micOn?<Mic size={19}/>:<MicOff size={19}/>}</button>
@@ -377,6 +398,7 @@ export default function Home(){
     {camOn&&<div className="camera-caption"><Hand size={14}/>{camStatus}</div>}
     {!camOn&&camStatus!=="Cámara apagada"&&<div className="status-toast" role="status" onClick={()=>setCamStatus("Cámara apagada")}>{camStatus} <X size={12}/></div>}
     {micOn&&<div className="listening-pill"><span/> <Mic size={15}/> Escuchando... di un comando</div>}
+    {musicError&&<div className="status-toast music-warning" role="status" onClick={()=>setMusicError(false)}>Para activar la música, sube blue-harbor-ambient.mp3 a public/audio <X size={12}/></div>}
     {mode==="demo"&&<div className="demo-stamp">PROTOTIPO · CIFRAS DE EJEMPLO</div>}
 
     {showVoiceSettings&&<div className="overlay-backdrop" onClick={()=>setShowVoiceSettings(false)}><div className="overlay-card voice-card" onClick={e=>e.stopPropagation()}>
@@ -393,6 +415,10 @@ export default function Home(){
         {availableVoices.map(v=><option key={v.voiceURI} value={v.voiceURI}>{v.name} · {v.lang}</option>)}
       </select></>:<p className="voice-hint">Tenemos una bienvenida grabada. Los demás diálogos todavía se mostrarán por escrito hasta grabarlos. Si el archivo de audio aún no está disponible, súbelo a <code>public/audio/lira-intro-01.mp3</code> en GitHub.</p>}
       {recordedVoiceError&&voiceMode==="recorded"&&<p className="voice-hint" role="status">Aún no está el audio en el sitio. Puedes subir el MP3 al repositorio, sin cambiar el código.</p>}
+      <label className="voice-label" htmlFor="lira-music-volume">Música ambiental · {musicVolume}%</label>
+      <input id="lira-music-volume" className="music-volume-range" type="range" min="0" max="20" step="1" value={musicVolume} onChange={e=>setMusicVolume(Number(e.target.value))} aria-label="Volumen de música ambiental"/>
+      <div className="music-controls"><button className="action-secondary" onClick={toggleMusic}><Music2 size={15}/> {musicOn?"Pausar música":"Reproducir música"}</button><small>Volumen inicial 8 %. Al hablar Lira, la música baja automáticamente.</small></div>
+      {musicError&&<p className="voice-hint" role="status">Falta subir el archivo <code>blue-harbor-ambient.mp3</code> a <code>public/audio/</code> en GitHub.</p>
       <div className="voice-actions">
         <button className="action-secondary" onClick={previewVoice}><Volume2 size={16}/> Escuchar ejemplo</button>
         <button className="action-primary" onClick={()=>{setShowVoiceSettings(false);if(voiceMode==="system")setVoiceOn(true);}}><Check size={16}/> Guardar selección</button>
