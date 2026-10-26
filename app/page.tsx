@@ -228,7 +228,7 @@ export default function Home(){
     pendingRef.current=true;setSelected(game);setChoiceId(game.id);setActionKind("pick");
     setHoveredGame(null);setBusy(true);setLiraReaction("¡Gran elección! Mira de cerca...");
     setFeedback("¡Ah, esa! Dame un segundo, voy a despejar el mostrador...");
-    await pause(1050);
+    await pause(1140);
     setScreen("detail");setBusy(false);setActionKind("none");setFeedback("");setLiraReaction("");
     pendingRef.current=false;
   },[]);
@@ -351,7 +351,7 @@ export default function Home(){
         <div className="top-stage-label">✧ &nbsp; LA TIENDA ENTRE MUNDOS &nbsp; ✧</div>
         {screen==="shop"&&<div className="shelf-indicator">COLECCIÓN {page+1} / {pages}<div>{Array.from({length:pages},(_,i)=><i key={i} className={i===page?"selected":""}/>)}</div></div>}
         <div className={`npc-wrap ${busy?"npc-action":""} ${screen==="detail"?"npc-inspect":""} ${screen==="story"?"npc-story":""}`}>
-          <img className="npc-image" src="/assets/merchant.png" alt="Lira, la mercadera, sonríe detrás del mostrador" draggable={false}/><span className="npc-sparkle a">✦</span><span className="npc-sparkle b">✧</span>
+          <img className="npc-image" src="/assets/merchant.png" alt="Lira, la mercadera, sonríe detrás del mostrador" draggable={false}/><span className="npc-speaking-mouth" aria-hidden="true"><i/></span><span className="npc-sparkle a">✦</span><span className="npc-sparkle b">✧</span>
         </div>
         {(liraReaction||(screen==="shop"&&hoveredGame))&&<div className="npc-callout" role="status"><span>✦</span>{liraReaction||("¿Quieres explorar "+hoveredGame+"?")}</div>}
         <div className="counter-lip" aria-hidden="true"/>
